@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#223d30">
+<title>像素农场 · 胡萝卜小田</title>
+<meta name="description" content="在六块小田里播种、浇水、收获。装满一篮胡萝卜，就完成了今天的农活。">
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #223d30;
+    --paper: #fff9e8;
+    --cream: #f3ecd4;
+    --line: #dfd9be;
+    --muted: #556552;
+    --orange: #a4401a;
+    font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  body {
+    min-height: 100vh; min-height: 100svh; margin: 0; padding: clamp(12px, 4vw, 48px);
+    display: grid; place-items: center;
+    background: radial-gradient(#b8c6a2 1px, transparent 1px) 0 0 / 16px 16px, #e1e8cf;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 3px solid #1769b3; outline-offset: 4px; }
+  .sprites { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .icon { display: block; width: 24px; height: 24px; flex: none; shape-rendering: crispEdges; }
+  .game {
+    width: min(100%, 990px); background: var(--paper); border: 2px solid var(--ink);
+    border-radius: 20px; overflow: hidden; box-shadow: 0 7px 0 #a6b592, 0 17px 42px #263d2919;
+  }
+  .masthead {
+    min-height: 60px; padding: 10px 22px; background: var(--ink); color: #faffdf;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; font: 800 .92rem ui-monospace, monospace; letter-spacing: .12em; }
+  .brand .icon { width: 28px; height: 28px; }
+  .season { display: inline-flex; align-items: center; gap: 7px; background: #385344; padding: 5px 10px; border-radius: 6px; font-size: .875rem; }
+  .season .icon { height: 16px; width: 16px; }
+  .game-body { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(0, 2.15fr); }
+  .notebook { padding: clamp(22px, 3vw, 34px); display: flex; flex-direction: column; align-items: stretch; }
+  .eyebrow { margin: 0 0 8px; color: var(--orange); font: 800 .75rem ui-monospace, monospace; letter-spacing: .15em; }
+  h1 { margin: 0; font-size: clamp(2rem, 4.3vw, 3.5rem); line-height: 1.12; letter-spacing: -.055em; font-weight: 900; }
+  .intro { margin: 12px 0 23px; color: var(--muted); line-height: 1.55; }
+  .basket {
+    padding: 13px; display: grid; grid-template-columns: auto 1fr auto; gap: 8px;
+    align-items: center; border: 1px solid var(--line); border-radius: 10px; background: var(--cream);
+  }
+  .basket .icon { width: 28px; height: 28px; }
+  .basket-label { font-size: .875rem; font-weight: 750; }
+  .score { white-space: nowrap; font: 800 1rem ui-monospace, monospace; }
+  .score span { color: var(--muted); font-weight: 600; font-size: .85rem; }
+  .meter { grid-column: 1 / -1; display: block; width: 100%; height: 8px; appearance: none; border: 0; border-radius: 3px; background: #ded6b6; overflow: hidden; }
+  .meter::-webkit-progress-bar { background: #ded6b6; }
+  .meter::-webkit-progress-value { background: #3c7843; }
+  .meter::-moz-progress-bar { background: #3c7843; }
+  .manual { list-style: none; padding: 0; margin: 23px 0; display: grid; gap: 12px; }
+  .manual li { display: flex; align-items: center; gap: 10px; font-size: .875rem; }
+  .manual .icon { background: var(--cream); border-radius: 6px; padding: 5px; width: 31px; height: 31px; }
+  .manual b { margin-right: 6px; }
+  .manual span { color: var(--muted); }
+  .restart {
+    align-self: flex-start; margin-top: auto; padding: 9px 12px; min-height: 42px;
+    border: 1px solid #b6bda0; border-radius: 7px; background: transparent; font-size: .875rem; font-weight: 700;
+  }
+  .restart:hover { background: #e8edce; }
+  .game[data-won] .restart { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .farm { min-width: 0; background: #dfe8bc; border-left: 1px solid #bdc996; }
+  .landscape { display: block; width: 100%; height: clamp(145px, 18vw, 204px); background: #b9e0dc; shape-rendering: crispEdges; }
+  .field { padding: 17px clamp(13px, 3.2vw, 28px) 21px; }
+  .field-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 11px; }
+  h2 { margin: 0; font-size: 1.125rem; }
+  .field-header span { color: #495c3e; font-size: .875rem; }
+  .plots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .plot {
+    display: grid; justify-items: center; align-content: center; gap: 3px;
+    border: 2px solid #683f2d; border-radius: 9px; padding: 6px 2px 10px; min-height: 110px; position: relative;
+    background: #81523b; box-shadow: 0 3px 0 #6b422c, inset 0 0 0 3px #986448;
+    color: #fff5d9; transition: background-color .15s, transform .15s;
+  }
+  .plot:not(:disabled, [aria-disabled="true"]):hover { background: #966446; transform: translateY(-2px); }
+  .plot:not(:disabled, [aria-disabled="true"]):active { transform: translateY(2px); }
+  .plot .icon { width: 48px; height: 48px; }
+  .action { font-size: .875rem; font-weight: 750; line-height: 1.25; white-space: nowrap; }
+  .plot[data-stage="growing"] { background: #64483e; box-shadow: 0 3px 0 #6b422c, inset 0 0 0 3px #83634c; }
+  .plot[data-stage="mature"] { border-color: #634223; background: #9b6339; box-shadow: 0 3px 0 #6b422c, inset 0 0 0 3px #edbe69; }
+  .plot:disabled { cursor: default; }
+  .plot[aria-disabled="true"] { cursor: wait; }
+  .growth-track { width: 60%; height: 3px; position: absolute; bottom: 5px; overflow: hidden; background: #4a342c; border-radius: 2px; }
+  .growth-track::after { content: ""; display: block; width: 100%; height: 100%; background: #a9e089; transform-origin: left; animation: fill var(--grow-time) linear both; }
+  @keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .notice { display: flex; align-items: center; gap: 8px; min-height: 42px; margin: 15px 0 0; border-radius: 7px; padding: 8px 10px; background: #eef2d4; font-size: .875rem; line-height: 1.4; }
+  .notice .icon { width: 19px; height: 19px; }
+  .game[data-won] .notice { background: #fff1b6; color: #513a19; font-weight: 750; }
+  @media (max-width: 680px) {
+    body { align-items: start; }
+    .game-body { grid-template-columns: 1fr; }
+    .notebook { position: relative; padding: 19px 16px 14px; }
+    .eyebrow { margin-bottom: 6px; }
+    h1 { font-size: 2.25rem; }
+    .intro { margin: 8px 0 14px; }
+    .manual { display: none; }
+    .restart { position: absolute; top: 17px; right: 16px; min-height: 36px; padding: 6px 8px; font-size: .875rem; }
+    .farm { border-left: 0; border-top: 1px solid #bdc996; }
+    .masthead { min-height: 48px; padding: 8px 14px; }
+    .landscape { height: clamp(105px, 30vw, 164px); }
+    .field { padding-top: 12px; }
+    .plots { gap: 8px; }
+    .plot { min-height: 93px; }
+    .plot .icon { width: 42px; height: 42px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .plot { transition: none; }
+    .plot:not(:disabled, [aria-disabled="true"]):hover, .plot:not(:disabled, [aria-disabled="true"]):active { transform: none; }
+    .growth-track { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg class="sprites" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="sun" viewBox="0 0 16 16">
+    <path fill="#ffce63" d="M5 4h6v1h1v6h-1v1H5v-1H4V5h1ZM7 0h2v3H7zm0 13h2v3H7zM0 7h3v2H0zm13 0h3v2h-3zM2 2h2v2H2zm10 0h2v2h-2zM2 12h2v2H2zm10 0h2v2h-2z"/>
+  </symbol>
+  <symbol id="seed" viewBox="0 0 16 16">
+    <path fill="#b87633" d="M5 5h7v2h2v4h-2v2H6v-1H4v-2H3V7h2z"/>
+    <path fill="#f2bb66" d="M5 5h7v2h1v2h-2v2H5V9H4V7h1z"/><path fill="#ffe0a1" d="M6 6h4v2H6z"/>
+  </symbol>
+  <symbol id="drop" viewBox="0 0 16 16">
+    <path fill="#286484" d="M7 1h2v3h2v3h2v6h-2v2H5v-2H3V7h2V4h2z"/>
+    <path fill="#6fc9e0" d="M7 3h2v3h2v3h1v3h-2v1H6v-1H4V9h1V6h2z"/><path fill="#d0f6f3" d="M6 7h2v3H6z"/>
+  </symbol>
+  <symbol id="carrot" viewBox="0 0 16 16">
+    <path fill="#26724d" d="M10 1h2v2h1V2h2v4h-2v2h-3V5H9V2h1z"/>
+    <path fill="#84b65a" d="M10 1h2v4h-2zM13 2h2v2h-2z"/>
+    <path fill="#af4c29" d="M6 5h5v1h2v4h-2v2H8v2H5v1H2v-2h1v-3h1V7h2z"/>
+    <path fill="#fa8b3f" d="M6 5h5v1h2v2h-2v2H9v2H6v1H3v-3h1V7h2z"/>
+    <path fill="#ffd081" d="M6 6h3v1H6zm-2 4h3v1H4z"/>
+  </symbol>
+  <symbol id="basket" viewBox="0 0 16 16">
+    <path fill="#925535" d="M5 2h6v1h2v5h2v3h-1v3h-2v1H4v-1H2v-3H1V8h2V3h2z"/>
+    <path fill="#f4bb65" d="M5 3h6v1h1v4h-1V5H5v3H4V4h1zM1 8h14v2H1zm2 3h10v2h-2v1H5v-1H3z"/>
+    <path fill="#d08b4c" d="M5 11h2v3H5zm4 0h2v3H9z"/>
+  </symbol>
+  <symbol id="dirt" viewBox="0 0 16 16">
+    <path fill="#5e372a" d="M3 7h3v1H4v1H2V8h1zm7 1h3v1h2v2h-3v-1h-2zM5 11h4v1H7v1H4v-1h1z"/>
+    <path fill="#bd8962" d="M4 5h3v1H4zm6 1h2v1h-2zM2 10h2v1H2zm8 3h3v1h-3z"/>
+    <path fill="#e0b187" d="M6 8h2v1H6zm2 3h2v1H8zm4-1h2v1h-2z"/>
+  </symbol>
+  <symbol id="planted" viewBox="0 0 16 16">
+    <use href="#dirt"/>
+    <path fill="#d29a58" d="M6 7h5v2h-1v2H7v-1H5V8h1z"/><path fill="#ffe0a1" d="M6 7h4v2H6z"/>
+  </symbol>
+  <symbol id="sprout" viewBox="0 0 16 16">
+    <path fill="#462f2a" d="M4 12h8v1h2v1H2v-1h2z"/>
+    <path fill="#89bb52" d="M7 7h2v6H7z"/><path fill="#b8e578" d="M2 4h4v1h1v4H4V8H3V7H2zm9-1h4v3h-1v2h-2v1H9V5h2z"/>
+    <path fill="#629b48" d="M3 6h3v1h1v2H5V8H4V7H3zm10-1h1v2h-2v1H9V7h2V6h2z"/>
+  </symbol>
+</svg>
+
+<main class="game">
+  <header class="masthead">
+    <div class="brand"><svg class="icon" aria-hidden="true"><use href="#carrot"/></svg>PIXEL FARM</div>
+    <span class="season"><svg class="icon" aria-hidden="true"><use href="#sun"/></svg>春日农场</span>
+  </header>
+
+  <div class="game-body">
+    <aside class="notebook">
+      <p class="eyebrow">THE CARROT PATCH</p>
+      <h1>像素农场</h1>
+      <p class="intro">收获六根胡萝卜，装满篮子。</p>
+
+      <div class="basket">
+        <svg class="icon" aria-hidden="true"><use href="#basket"/></svg>
+        <span class="basket-label" id="basket-label">收获进度</span>
+        <div class="score"><strong id="count">0</strong> <span>/ <span id="goal">6</span></span></div>
+        <progress id="meter" class="meter" value="0" max="6" aria-labelledby="basket-label"></progress>
+      </div>
+
+      <ol class="manual" aria-label="玩法">
+        <li><svg class="icon" aria-hidden="true"><use href="#seed"/></svg><div><b>播种</b><span>点一块空地</span></div></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#drop"/></svg><div><b>浇水</b><span>再点一次</span></div></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#carrot"/></svg><div><b>收获</b><span>长大后点采收</span></div></li>
+      </ol>
+      <button class="restart" id="restart" type="button">重新开始</button>
+    </aside>
+
+    <section class="farm" aria-labelledby="field-title">
+      <svg class="landscape" viewBox="0 0 512 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <g id="cloud">
+            <path fill="#eaf7e5" d="M0 15h8V9h10V3h21v5h13v5h14v10H0z"/>
+            <path fill="#d5eae0" d="M0 19h66v4H0z"/>
+          </g>
+          <g id="grass">
+            <path fill="#6e9e5d" d="M0 3h3v3h3V0h3v6h3V2h3v7H0z"/>
+            <path fill="#8bb96c" d="M3 6h9v3H3z"/>
+          </g>
+          <g id="flower">
+            <path fill="#5e9257" d="M3 4h2v9H3zM0 9h3v2H0zm5-2h3v2H5z"/>
+            <path fill="#ffdf76" d="M1 0h6v6H1z"/><path fill="#f29452" d="M3 2h2v2H3z"/>
+          </g>
+          <g id="fence">
+            <path fill="#bb8c56" d="M0 9h42v4H0zm0 8h42v4H0z"/>
+            <path fill="#f0ce87" d="M0 6h42v4H0zm0 8h42v4H0zM3 3h3V0h4v3h2v22H3zm24 0h3V0h4v3h2v22h-9z"/>
+            <path fill="#d7a660" d="M8 9h4v16H8zm24 0h4v16h-4z"/>
+          </g>
+        </defs>
+        <path fill="#b9e0dc" d="M0 0h512v160H0z"/>
+        <path fill="#ffdf85" d="M377 17h23v5h7v7h5v23h-5v7h-7v5h-23v-5h-7v-7h-5V29h5v-7h7z"/>
+        <path fill="#f7cb70" d="M369 52h39v7h-8v5h-23v-5h-8z"/>
+        <use href="#cloud" x="22" y="26"/>
+        <use href="#cloud" transform="translate(118 12) scale(.70)"/>
+        <use href="#cloud" transform="translate(425 33) scale(.92)"/>
+        <path fill="#a1c69a" d="M0 97h22V87h24V77h19V65h19V54h28v-7h38v7h24v10h18v13h22v13h19v7h44v63H0z"/>
+        <path fill="#80b281" d="M0 105h28V93h25V82h29v-9h29v-6h42v5h21v9h22v10h24v14h34v55H0z"/>
+        <path fill="#9ec187" d="M263 97h41V83h20V71h30V61h25v-8h44v8h30v10h24v10h19v10h16v69H263z"/>
+        <path fill="#79aa70" d="M290 112h24V99h23V87h30v-9h23v-9h39v6h37v10h21v10h25v65H290z"/>
+        <path fill="#a9c875" d="M0 110h512v50H0z"/>
+        <path fill="#92b966" d="M0 110h512v7H0zm0 25h80v4H0zm395-9h117v4H395z"/>
+        <path fill="#dac193" d="M246 109h34v8h18v10h21v9h22v12h23v12H251v-10h-10v-9h-4v-10h-2v-10h6v-7h5z"/>
+        <path fill="#e6cfa3" d="M250 109h24v9h16v10h19v10h24v11h19v11h-91v-10h-10v-12h-5v-12h-2v-8h6z"/>
+        <use href="#fence" x="111" y="97"/>
+        <use href="#fence" x="153" y="97"/>
+        <use href="#fence" x="330" y="97"/>
+        <use href="#fence" x="372" y="97"/>
+        <path fill="#799f57" d="M196 110h119v7H196z"/>
+        <path fill="#934534" d="M206 76h98v36h-98z"/>
+        <path fill="#b9583b" d="M207 79h83v31h-83z"/>
+        <path fill="#c96945" d="M208 82h80v3h-80zm0 9h80v3h-80zm0 9h80v3h-80z"/>
+        <path fill="#6f392e" d="M196 73h8V62h10V53h12v-8h14v-8h21v8h15v8h13v9h10v11h11v9H196z"/>
+        <path fill="#a44936" d="M201 73h9v-9h10v-8h12v-8h13v-6h15v7h13v8h12v8h10v8h9v4H201z"/>
+        <path fill="#e6a661" d="M199 75h106v3H199z"/>
+        <path fill="#e9bd82" d="M246 86h21v26h-21zm-26 3h14v13h-14zm59 0h14v13h-14z"/>
+        <path fill="#623d32" d="M250 90h13v22h-13zm-27 2h8v7h-8zm59 0h8v7h-8z"/>
+        <path fill="#ffda7b" d="M254 99h3v3h-3z"/>
+        <path fill="#eabb83" d="M246 61h16v11h-16z"/><path fill="#794438" d="M250 64h8v5h-8z"/>
+        <path fill="#799e59" d="M54 121h40v5H54zm383-2h51v5h-51z"/>
+        <path fill="#90603d" d="M67 81h12v41H67zm391-8h13v46h-13z"/>
+        <path fill="#b88551" d="M72 90h5v32h-5zm393-7h4v36h-4z"/>
+        <path fill="#416f4d" d="M55 62h8V52h22v7h9v9h9v18h-7v9H51v-8h-7V72h11zm393-8h9V45h23v8h9v10h9v17h-7v10h-47v-8h-9V63h13z"/>
+        <path fill="#5f9457" d="M54 64h11V54h19v7h9v10h6v10H89v6H50V73h4zm392-6h14V47h18v9h9v9h8v10h-12v7h-41V65h4z"/>
+        <path fill="#81ad65" d="M59 64h9v5h-9zm19-3h8v4h-8zm377-4h8v5h-8zm16-4h7v4h-7z"/>
+        <use href="#grass" x="24" y="128"/><use href="#grass" x="110" y="134"/>
+        <use href="#grass" x="176" y="122"/><use href="#grass" x="338" y="121"/>
+        <use href="#grass" x="416" y="139"/><use href="#grass" x="472" y="128"/>
+        <use href="#flower" x="82" y="139"/><use href="#flower" x="142" y="121"/>
+        <use href="#flower" x="380" y="129"/><use href="#flower" x="453" y="134"/>
+        <path fill="#bfcd7c" d="M20 149h27v3H20zm126-2h24v4h-24zm39-9h18v3h-18zm190 11h22v3h-22zm97 1h19v3h-19z"/>
+        <path fill="#8ab062" d="M0 156h512v4H0z"/>
+      </svg>
+
+      <div class="field">
+        <header class="field-header"><h2 id="field-title">我的菜地</h2><span>播种 · 浇水 · 收获</span></header>
+        <div class="plots" id="plots"></div>
+        <p class="notice"><svg class="icon" aria-hidden="true"><use id="notice-icon" href="#seed"/></svg><span id="status" role="status">点一块空地，播下第一颗种子。</span></p>
+        <noscript>请启用 JavaScript 后开始种植。</noscript>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  const GOAL = 6;
+  const GROW_MS = 3000;
+  const stages = {
+    empty:   { label: '播种', sprite: 'dirt' },
+    planted: { label: '浇水', sprite: 'planted' },
+    growing: { label: '生长中', sprite: 'sprout' },
+    mature:  { label: '收获', sprite: 'carrot' }
+  };
+  const game = document.querySelector('.game');
+  const board = document.querySelector('#plots');
+  const restart = document.querySelector('#restart');
+  const statusMessage = document.querySelector('#status');
+  const noticeIcon = document.querySelector('#notice-icon');
+  const count = document.querySelector('#count');
+  const meter = document.querySelector('#meter');
+  let harvested = 0;
+
+  document.querySelector('#goal').textContent = GOAL;
+  meter.max = GOAL;
+  board.style.setProperty('--grow-time', GROW_MS + 'ms');
+
+  const plots = Array.from({ length: 6 }, (_, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'plot';
+    const plot = { button, number: index + 1, stage: 'empty', timer: null };
+    button.addEventListener('click', () => tend(plot));
+    board.append(button);
+    return plot;
+  });
+
+  function renderPlot(plot) {
+    const { label, sprite } = stages[plot.stage];
+    const growing = plot.stage === 'growing';
+    plot.button.dataset.stage = plot.stage;
+    plot.button.setAttribute('aria-label', plot.number + '号菜地：' + label);
+    plot.button.setAttribute('aria-disabled', String(growing));
+    plot.button.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#' + sprite +
+      '"/></svg><span class="action">' + label + '</span>' +
+      (growing ? '<span class="growth-track" aria-hidden="true"></span>' : '');
+  }
+
+  function announce(message, icon) {
+    noticeIcon.setAttribute('href', '#' + icon);
+    statusMessage.textContent = message;
+  }
+
+  function tend(plot) {
+    if (harvested === GOAL || plot.stage === 'growing') return;
+
+    if (plot.stage === 'empty') {
+      plot.stage = 'planted';
+      announce(plot.number + '号菜地已播种，再点一次就能浇水。', 'seed');
+    } else if (plot.stage === 'planted') {
+      plot.stage = 'growing';
+      announce(plot.number + '号菜地已浇水，' + GROW_MS / 1000 + ' 秒后成熟。', 'drop');
+      plot.timer = setTimeout(() => {
+        plot.timer = null;
+        if (harvested === GOAL) return;
+        plot.stage = 'mature';
+        renderPlot(plot);
+        announce(plot.number + '号菜地成熟了，点一下收获。', 'carrot');
+      }, GROW_MS);
+    } else {
+      plot.stage = 'empty';
+      count.textContent = meter.value = ++harvested;
+      if (harvested === GOAL) {
+        game.dataset.won = '';
+        for (const crop of plots) {
+          clearTimeout(crop.timer);
+          crop.timer = null;
+          crop.button.disabled = true;
+        }
+        restart.textContent = '再玩一局';
+        restart.focus();
+        announce('丰收啦！今天的胡萝卜装满一篮了。', 'basket');
+      } else {
+        announce('收获一根！还差 ' + (GOAL - harvested) + ' 根装满篮子。', 'carrot');
+      }
+    }
+    renderPlot(plot);
+  }
+
+  function reset() {
+    harvested = 0;
+    count.textContent = meter.value = 0;
+    delete game.dataset.won;
+    restart.textContent = '重新开始';
+    for (const plot of plots) {
+      clearTimeout(plot.timer);
+      plot.timer = null;
+      plot.stage = 'empty';
+      plot.button.disabled = false;
+      renderPlot(plot);
+    }
+    announce('点一块空地，播下第一颗种子。', 'seed');
+  }
+
+  restart.addEventListener('click', () => {
+    reset();
+    plots[0].button.focus();
+  });
+  reset();
+</script>
+</body>
+</html>
